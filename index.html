@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>COVID Dashboards</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            
+            background: #000;
+            color:white;
+        }
+
+        .dashboard-container {
+            margin: 20px;
+            flex-wrap: wrap;
+        
+        }
+
+        .dashboard-title {
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container,
+        .table-container {
+            margin-bottom: 30px;
+            width: 100%;
+            display: inline-block;
+            vertical-align: top;
+            flex:1;
+            margin-right: 20px;
+            padding-left: 100px;
+
+        }
+
+        .chart-container:last-child,
+        .table-container:last-child{
+            margin-right: 0;
+        }
+
+        
+        .title {
+            margin-bottom: 10px;
+        }
+
+        .row::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .col-md-6 {
+            float: left;
+            width: 50%;
+        }
+
+        .table-container table {
+            margin-top: 10px;
+            border-collapse: collapse;
+            
+            
+        }
+
+        .table-container th,
+        .table-container td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            color: #fff;
+        }
+       .table-container thead{
+        background-color: #333;
+       }
+    
+       .table-container tbody tr:nth-child(odd){
+        background-color: #fff;
+       }
+    </style>
+</head>
+<body>
+    
+    <div class="container dashboard-container">
+        <h1 class="dashboard-title" style="color: red;">COVID 19</h1>
+
+        <div class="row">
+            <h2 class="title">Tracking Chart And Table</h2>
+                <div class="chart-container">
+                    <div id="chartContainer1"></div>
+                </div>
+                <div class="table-container">
+                    <table id="tableContainer1">
+                        <thead>
+                            
+                        </thead>
+                        <tbody>
+                           
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="row">
+                <h2 class="title">Hospitalization Chart And Table</h2>
+                <div class="chart-container">
+                    
+                    <div id="chartContainer2"></div>
+                </div>
+                <div class="table-container">
+                   
+                    <table id="tableContainer2">
+                        <thead>
+                            
+                        </thead>
+                        <tbody>
+                            
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+<div class="button">
+    <button style="background-color:black; font-size: large;"><a href="index2.html">Get By Date</a></button>
+</div>
+
+    <script>
+        // COVID Tracking Dashboard
+        fetch('https://api.covidtracking.com/v1/us/current.json')
+            .then(response => response.json())
+            .then(data => {
+                const chartData = [
+                    { name: 'Positive', y: data[0].positive },
+                    { name: 'Negative', y: data[0].negative },
+                    { name: 'Hospitalized', y: data[0].hospitalizedCurrently, sliced: true, selected: true },
+                    { name: 'Deaths', y: data[0].death }
+                ];
+
+                Highcharts.chart('chartContainer1', {
+                    chart: { type: 'pie' },
+                    title: { text: 'COVID Tracking Data' },
+                    series: [{
+                        name: 'Count',
+                        data: chartData,
+                        dataLabels: { enabled: true }
+                    }]
+                });
+
+                const tableData = [
+                    ['Positive', data[0].positive],
+                    ['Negative', data[0].negative],
+                    ['Hospitalized', data[0].hospitalizedCurrently],
+                    ['Deaths', data[0].death]
+                ];
+
+                const tableContainer1 = document.getElementById('tableContainer1');
+                const table1 = document.createElement('table');
+                table1.className = 'table table-striped';
+                table1.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Data Type</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableData.map(row => `
+                            <tr>
+                                <td>${row[0]}</td>
+                                <td>${row[1]}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+
+                tableContainer1.appendChild(table1);
+            })
+            .catch(error => {
+                console.log('Error fetching data:', error);
+            });
+
+        // COVID Hospitalization Dashboard
+        fetch('https://api.covidtracking.com/v1/us/current.json')
+            .then(response => response.json())
+            .then(data => {
+                const hospitalizedCurrently = data[0].hospitalizedCurrently;
+                const hospitalizedCumulative = data[0].hospitalizedCumulative;
+
+                Highcharts.chart('chartContainer2', {
+                    chart: { type: 'column' },
+                    title: { text: 'COVID Hospitalization Data' },
+                    xAxis: { categories: ['Currently Hospitalized', 'Cumulative Hospitalizations'] },
+                    yAxis: { title: { text: 'Count' } },
+                    series: [{
+                        name: 'Hospitalizations',
+                        data: [hospitalizedCurrently, hospitalizedCumulative]
+                    }]
+                });
+
+                const tableContainer2 = document.getElementById('tableContainer2');
+                const table2 = document.createElement('table');
+                table2.className = 'table table-striped';
+                table2.style='color:#fff'
+                table2.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Data Type</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Currently Hospitalized</td>
+                            <td>${hospitalizedCurrently}</td>
+                        </tr>
+                        <tr>
+                            <td>Cumulative Hospitalizations</td>
+                            <td>${hospitalizedCumulative}</td>
+                        </tr>
+                    </tbody>
+               ` ;
+                tableContainer2.appendChild(table2);
+            })
+            .catch(error => {
+                console.log('Error fetching data:', error);
+            });
+
+        
+    </script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>COVID-19 Dashboard</title>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <style>
+    /* Add CSS styling for the dashboard */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #000;
+            color:white;
+    }
+
+    .container {
+      display: flex;
+    }
+
+    .chart-container,
+    .table-container {
+      flex: 1;
+      margin: 0 10px;
+      max-width: 600px;
+    }
+
+    #dataTable {
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+
+    #dataTable th,
+    #dataTable td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+      color: #fff
+    }
+
+    #dataTable th {
+      background-color: #000;
+      color: #fff
+    }
+
+    #searchInput {
+      margin-bottom: 10px;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="chart-container">
+      <h2>COVID-19 Cases Chart</h2>
+      <div id="chartContainer"></div>
+    </div>
+
+    <div class="table-container">
+      <h2>COVID-19 Cases Table</h2>
+      <input type="text" id="searchInput" placeholder="Search by date">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Cases</th>
+            <th>Deaths</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Table rows will be added dynamically using JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    fetch('https://api.covidtracking.com/v1/us/daily.json')
+      .then(response => response.json())
+      .then(data => {
+        // Process the retrieved data for the chart
+        const originalDates = data.map(entry => formatDate(String(entry.date)));
+        const originalCases = data.map(entry => entry.positive);
+
+        // Create the chart
+        const chartOptions = {
+          chart: {
+            type: 'line'
+          },
+          title: {
+            text: 'COVID-19 Cases'
+          },
+          xAxis: {
+            categories: originalDates
+          },
+          yAxis: {
+            title: {
+              text: 'Number of Cases'
+            }
+          },
+          series: [{
+            name: 'Cases',
+            data: originalCases
+          }]
+        };
+
+        let chart = Highcharts.chart('chartContainer', chartOptions);
+
+        // Process the retrieved data for the table
+        const tableData = data.map(entry => ({
+          date: formatDate(String(entry.date)),
+          cases: entry.positive,
+          deaths: entry.death
+        }));
+
+        // Create the table rows dynamically
+        const table = document.getElementById('dataTable');
+        const tbody = table.querySelector('tbody');
+
+        function populateTable(data) {
+          // Clear previous table rows
+          tbody.innerHTML = '';
+
+          // Create new table rows
+          data.forEach(rowData => {
+            const row = document.createElement('tr');
+            Object.values(rowData).forEach(value => {
+              const cell = document.createElement('td');
+              cell.textContent = value;
+              row.appendChild(cell);
+            });
+            tbody.appendChild(row);
+          });
+        }
+
+        populateTable(tableData);
+
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', () => {
+          const searchQuery = searchInput.value.trim().toLowerCase();
+          const filteredData = tableData.filter(rowData =>
+            rowData.date.toLowerCase().includes(searchQuery)
+          );
+          populateTable(filteredData);
+
+          // Update the chart based on the filtered data
+          const filteredDates = filteredData.map(rowData => rowData.date);
+          const filteredCases = filteredData.map(rowData => rowData.cases);
+
+          chart.update({
+            xAxis: {
+              categories: filteredDates
+            },
+            series: [{
+              data: filteredCases
+            }]
+          });
+        });
+      })
+      .catch(error => {
+        // Handle any errors
+        console.error('Error:', error);
+      });
+      function formatDate(date) {
+      const year = date.slice(0, 4);
+      const month = date.slice(4, 6);
+      const day = date.slice(6, 8);
+      return `${year}/${month}/${day}`;
+    }
+  </script>
+</body>
+</html>
